@@ -1,0 +1,135 @@
+#+title: Notes
+#+LATEX_HEADER: \usepackage{algorithm2e}
+
+Problem:
+- writing latex2e algorithms is cumbersome
+  - latex has terse syntax
+  - need to learn specific syntax
+- Yet it is preferred to a source block
+  - it is universal
+    no dependency on a specific language
+  - Looks good
+
+
+Idea
+- write your algorithms in python
+- it is sometimes even compared to pseudocode
+- Map constructs to the closest equivalent
+  e.g. comments
+- Can we do the inverse process
+  algorithm2e -> python
+  In general not.
+  But algorithms that were translated should be also possible to translated back
+  python -> algorithm2e -> python
+- Interface
+  algorithm2e < test.py > algorithm.txt
+  Will produce tex source code
+
+How
+- leverage the AST
+  want to test this module
+- simple text replacement may also work
+
+Further
+- could this be abstracted to other languages than python
+
+
+* Tasks
+- [-] Find example code
+- [ ] what is the expected result
+- [ ] preview the result
+  compile the latex
+  use a minimalistic header
+- [ ] create a test file
+  with all possible constructs
+- Challenges:
+  when to insert math $$ delimiters.
+  How can we check if a line is ended?
+  I think \; should be added.
+- How to map constructs that have no algorithm2e equivalent?
+  either just ignore them
+  or replace them literally
+- check the algorithm2e documentation for options
+
+* Examples
+** Colorful Paths
+#+begin_src python :session :tangle colorful.py
+a = None
+b = "foo"
+c = (1, 2, 3)
+d = 3.13412342314234
+def colorful_paths(V, N, gamma):
+    for v in V:
+        P[i][(u, v)] = set()
+        for x in N(v):
+            for S in P[i-1][x]:
+                if gamma(v) not in S:
+                    P[i][(u, v)] = P[i][(u, v)] | {S | { gamma(v) }}
+#+end_src
+
+#+RESULTS:
+
+    \begin{algorithm}
+    \ForAll{\( v \in V \)}{
+        \( P_i(u, v) \gets \emptyset  \) \;
+        \ForAll{\( x \in N(v) \)}{
+            \ForAll{\( S \in P_{i-1}(x) \)}{
+                    \If{ \( \gamma (v) \not\in S \)}{
+                            \( P_i(u, v) \gets P_i(u, v) \cup \{ S \cup  \{ \gamma (v) \}  \}  \)\;
+                            }
+                        }}}
+    \end{algorithm}
+** Minimal Cut
+\begin{algorithm}
+  \( G' \gets G \) \;
+  \While{\( \lvert V (G') \rvert  > 2\) }{
+    \( e \gets  \) uniform random edge in \( G' \) \;
+    \( G' \gets G' / e \) \;
+}
+\Return{Size of the unique cut in \( G' \) }
+\end{algorithm}
+
+** Flows
+\begin{algorithm}
+\SetKwInOut{Input}{input}
+\SetKwFunction{FordFulkerson}{Ford-Fulkerson}
+\Input{ \( m, r, c_1, \dots , c_m, L_1, \dots , L_m \)  }
+
+\( (V = (X \cup G \cup \{ s, t \} ), A, c, s, t) \)  \gets build Network as described in part a)\;
+$f$ \gets \FordFulkerson{ \(V, A, c, s, t \) }\;
+
+\If{ \( val(f) \neq \sum_{i=1}^{m} c_m \)}{
+ \Return{Assignment not possible} \;
+} \Else {
+    \ForEach{\( i \in [r] \) }{
+        \( G_i \) \gets \emptyset \;
+    }
+    \ForEach{\( i \in [m] \) }{
+        \ForEach{ \( j \in [r] \)  } {
+        \If{ \( f(x_i, g_j) = 1 \)  }{
+    take next available name from \( L_i \) and put it in list \( G_j \)}
+ }
+}
+\Return{\( G_1, \dots , G_r \) }
+}
+
+\end{algorithm}
+** Quickhull
+\begin{algorithm}
+\caption{convexHull}
+\SetKwInOut{Input}{input}
+\SetKwFunction{mergeHull}{mergeHull}
+\SetKwFunction{convexHull}{convexHull}
+\SetKwFunction{partition}{partition}
+\DontPrintSemicolon
+\Input{ Set of points \( P \subset \mathbb{R}^2 \)  }
+\Output{ Convex hull of \( P \)  }
+
+\If{ \( \lvert P \rvert \leq  3\) }{
+ \Return{ \( P \) } \;
+}
+    \( P_1, P_2 \gets \) \partition{P} \;
+    \( H_1  \gets \) \convexHull{P_1} \; \\
+   \( H_2  \gets \) \convexHull{P_2} \; \\
+\Return{ \mergeHull{ \( H_1, H_2 \)  } }
+\end{algorithm}

@@ -1,0 +1,11 @@
+#!/bin/sh
+
+PNGFILE="tmp.png"
+PDFFILE="texput.pdf"
+
+function preview() {
+    convert -density 300 -trim -antialias $PDFFILE -quality 100  $PNGFILE
+    sxiv $PNGFILE
+}
+
+./main.py 2>/dev/null | ./prepare.py | pdflatex  && zathura texput.pdf
