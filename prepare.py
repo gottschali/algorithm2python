@@ -2,10 +2,17 @@
 import tempfile
 from pathlib import Path
 
+# TODO make configurable
+options = "linesnumbered,lined,boxed,commentsnumbered"
 
-header = r"""
-\documentclass{article}
-\usepackage{algorithm2e}
+header = (
+    r"\documentclass{article}"
+    + r"\usepackage["
+    + options
+    + "]{algorithm2e}"
+    + r"""
+\usepackage{minted}
+\usepackage{paracol}
 \usepackage[usenames]{color}
 \usepackage{amsmath}
 \usepackage{amssymb}
