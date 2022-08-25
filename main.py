@@ -15,8 +15,16 @@ with open("bench.py") as f:
 class FuncLister(ast.NodeVisitor):
     INDENTATION = "   "
     level = 0
+    _lineno = -1
 
-    def _print(self, value, end="\n", *kwarg, **kwargs):
+    def visit(self, node: ast.AST):
+        if hasattr(node, "lineno") and node.lineno > self._lineno:
+            if self._lineno != -1:  # The first one
+                self._print(r" \; ", end="\n")
+            self._lineno = node.lineno
+        return super().visit(node)
+
+    def _print(self, value, end=" ", *kwarg, **kwargs):
         if end != "\n":
             print(value, end=end, *kwarg, **kwargs)
         else:
