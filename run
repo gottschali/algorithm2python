@@ -8,4 +8,5 @@ function preview() {
     sxiv $PNGFILE
 }
 
-./main.py 2>/dev/null | ./prepare.py | pdflatex  && zathura texput.pdf
+# -shell-escape is needed for minted
+./main.py 2>/dev/null | ./prepare.py | tee tmp.tex | pdflatex -shell-escape && zathura texput.pdf

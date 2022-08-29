@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-import tempfile
-from pathlib import Path
 
 # TODO make configurable
 options = "linesnumbered,lined,boxed,commentsnumbered"
@@ -18,13 +16,20 @@ header = (
 \usepackage{amssymb}
 \usepackage[utf8]{inputenc}
 \usepackage[OT1]{fontenc}
-\pagestyle{empty}             % do not remove
+% \pagestyle{empty}
+\columnratio{0.55} % Set the left/right column width ratio to 6:4.
+\usepackage{geometry}
+\geometry{left=3.0cm,right=3.0cm,top=1.0cm,bottom=1.0cm,columnsep=1.0cm}
+\title{Python2Algorithm}
+\author{Ali G.}
 \begin{document}
-\begin{algorithm}
+\maketitle
+\begin{paracol}{2}
 """
+)
 footer = r"""
-\end{algorithm}
-\end{document}"
+\end{paracol}
+\end{document}
 """
 
 """
@@ -42,15 +47,16 @@ footer = r"""
 
 def main():
     print(header)
-    with tempfile.TemporaryDirectory() as tmpdir:
-        with open(Path(tmpdir) / "temp.tex", "w") as f:
-            # f.write(header)
-            try:
-                while line := input():
-                    print(line)
-                    # f.write(line)
-            except EOFError:
-                pass
+    try:
+        print(r"\begin{algorithm}")
+        while line := input():
+            print(line)
+    except EOFError:
+        pass
+    finally:
+        print(r"\end{algorithm}")
+    print(r"\switchcolumn")
+    print(r"\inputminted{python3}{bench.py}")
     print(footer)
 
 

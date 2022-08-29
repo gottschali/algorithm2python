@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
+"""
+This is a module docstring
+"""
 
 a = None
 b = "foo"
-c = (1, 2, 3)
+c = (1 / 2, 2**5, 3 * 5)
 d = 3.13412342314234
-e = {4, 5, 6}
+e = {4 << 2, 5 >> 5, 6 ^ 3}
 f = frozenset({7, 8})
 g = set()
 h = not a + ~b + (-d) + (+d)
@@ -17,6 +20,10 @@ def foo(x, y):
     else:
         h = []
         while x < y:
+            if len(h) == 0:
+                print("hello")
+            else:
+                break
             for q in y:
                 x += 1
             h.append(x)
