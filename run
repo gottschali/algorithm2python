@@ -9,4 +9,5 @@ function preview() {
 }
 
 # -shell-escape is needed for minted
-./main.py 2>/dev/null | ./prepare.py | tee tmp.tex | pdflatex -shell-escape && zathura texput.pdf
+# && zathura tmp/texput.pdf
+python src/main.py 2>/dev/null | python src/prepare.py | tee tmp/tmp.tex | pdflatex -shell-escape -output-directory tmp
