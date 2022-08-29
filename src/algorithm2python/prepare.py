@@ -56,7 +56,7 @@ def main():
     finally:
         print(r"\end{algorithm}")
     print(r"\switchcolumn")
-    print(r"\inputminted{python3}{src/bench.py}")
+    print(r"\inputminted{python3}{src/sample/bench.py}")
     print(footer)
 
 

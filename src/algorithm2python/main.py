@@ -470,7 +470,7 @@ class KwFunctionExtractor(ast.NodeVisitor):
 
 
 def main():
-    with open("bench.py") as f:
+    with open("src/sample/bench.py") as f:
         source = "".join(f.readlines())
         tree = ast.parse(source, mode="exec")
         print(ast.dump(tree, indent=4), file=sys.stderr)
