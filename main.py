@@ -35,7 +35,19 @@ class Python2Algorithm(ast.NodeVisitor):
     _lineno = -1
     _suppress_semicolon = False
 
+    def define_Functions_First(self, node: ast.AST):
+        # to allow recursive function definitions we run it before
+        # for f in ignores:
+        # print("\\SetKwFunction{" + f + "}{" + f + "}")
+        kwe = KwFunctionExtractor()
+        kwe.visit(node)
+        print("\\SetKwProg{Fn}{Function}{:}{end}")
+        for f in kwe.needs:
+            print("\\SetKwFunction{" + f + "}{" + f + "}")
+
     def visit_Module(self, node: ast.Module):
+        self.define_Functions_First(node)
+
         docstring = ast.get_docstring(node)
         if docstring:
             # Or KwData
@@ -462,15 +474,7 @@ def main():
         source = "".join(f.readlines())
         tree = ast.parse(source, mode="exec")
         print(ast.dump(tree, indent=4), file=sys.stderr)
-    # To allow recursive function definitions we run it before
-    # for f in ignores:
-    # print("\\SetKwFunction{" + f + "}{" + f + "}")
-    kwe = KwFunctionExtractor()
-    kwe.visit(tree)
-    print("\SetKwProg{Fn}{Function}{:}{end}")
-    for f in kwe.needs:
-        print("\\SetKwFunction{" + f + "}{" + f + "}")
-    Python2Algorithm().visit(tree)
+        Python2Algorithm().visit(tree)
 
 
 if __name__ == "__main__":
