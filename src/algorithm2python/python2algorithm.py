@@ -13,18 +13,12 @@ ignores = dir(__builtins__)
 # Note that function names get capitalized
 
 # TODO methods (Calls with attributes)
-
-# TODO math constant, e, pi, ...
-# numpy matmul
 # Infinity / negative infinity (floats)
-# all -> \forAll
-# any -> \exists
-# abs(x) -> ||x||
-# min, max
-# math.ceil, floor
-# trigonometry
-# These should be doable with simple text replacements
-# Also do this for other greek stuff
+# numpy matmul
+# TODO These should be doable with simple text replacements
+# - math constant, e, pi, ...
+# - Also do this for other greek stuff
+# - trigonometry
 # -> replace alpha with \alpha, ...
 
 # set operations
@@ -35,6 +29,11 @@ NOMATH = -1
 
 
 class Python2Algorithm(ast.NodeVisitor):
+    """
+    This class overloads almost all visitor methods of the python AST.
+    When visiting it will print corresponding LaTeX code compatible with algorithm2e to STDOUT or the file output if given.
+    """
+
     _INDENTATION = "   "
     # The level of indentation
     # Is manually incremented for example when entering the body of a while expression
@@ -62,8 +61,13 @@ class Python2Algorithm(ast.NodeVisitor):
         self._output_file = output
 
     def define_Functions_First(self, node: ast.AST):
+        """
+        To allow recursive function definition we need to traverse the entire AST an extract all function definitions
+        before we can traverse it normally and call them.
+        Otherwise we might use \Foo
+        before we have defined it with \\SetKfFunction{Foo}{Foo}
+        """
         # to allow recursive function definitions we run it before
-        # for f in ignores:
         # print("\\SetKwFunction{" + f + "}{" + f + "}")
         kwe = KwFunctionExtractor()
         kwe.visit(node)
@@ -75,7 +79,7 @@ class Python2Algorithm(ast.NodeVisitor):
         self._print("\\SetKw{Continue}{continue}\n")
         self._print("\\SetKw{Pass}{pass}\n")
 
-        # SetKwData
+        # TODO SetKwData: what?
 
         if kwe.needs:
             self._print("\\SetKwProg{Fn}{Function}{:}{end}\n")
@@ -362,8 +366,58 @@ class Python2Algorithm(ast.NodeVisitor):
                     self.visit(v)
                 self._print(r"\rvert", math=MATH)
                 return
-            elif node.func.id in ignores:
-                self._print("\\" + node.func.id, end="", math=NOMATH)
+            elif node.func.id == "all":
+                self._print(r"\forall", math=MATH)
+                for v in node.args:
+                    self.visit(v)
+                for v in node.keywords:
+                    self.visit(v)
+                return
+            elif node.func.id == "any":
+                self._print(r"\exists", math=MATH)
+                for v in node.args:
+                    self.visit(v)
+                for v in node.keywords:
+                    self.visit(v)
+                return
+            elif node.func.id == "abs":
+                self._print(r"\|", math=MATH)
+                for v in node.args:
+                    self.visit(v)
+                for v in node.keywords:
+                    self.visit(v)
+                self._print(r"\|", math=MATH)
+                return
+            elif node.func.id == "min":
+                self._print(r"\min", math=MATH)
+                for v in node.args:
+                    self.visit(v)
+                for v in node.keywords:
+                    self.visit(v)
+                return
+            elif node.func.id == "max":
+                self._print(r"\max", math=MATH)
+                for v in node.args:
+                    self.visit(v)
+                for v in node.keywords:
+                    self.visit(v)
+                return
+            elif node.func.id == "ceil":
+                self._print(r"\lceil", math=MATH)
+                for v in node.args:
+                    self.visit(v)
+                for v in node.keywords:
+                    self.visit(v)
+                self._print(r"\rceil", math=MATH)
+                return
+            elif node.func.id == "floor":
+                self._print(r"\lfloor", math=MATH)
+                for v in node.args:
+                    self.visit(v)
+                for v in node.keywords:
+                    self.visit(v)
+                self._print(r"\rfloor", math=MATH)
+                return
             else:
                 name = normalize_function_name(node.func.id)
                 self._print("\\" + name, end="", math=NOMATH)
@@ -644,10 +698,7 @@ class KwFunctionExtractor(ast.NodeVisitor):
 
     def visit_Call(self, node: ast.Call):
         if isinstance(node.func, ast.Name):
-            if node.func.id in ignores:
-                self.needs.add(node.func.id)
-            else:
-                self.needs.add(node.func.id.capitalize())
+            self.needs.add(node.func.id.capitalize())
         elif isinstance(node.func, ast.Attribute):
             self.needs.add(node.func.attr)
         for v in node.args:

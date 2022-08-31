@@ -2,6 +2,7 @@
 """
 This is a module docstring
 """
+from math import floor, ceil
 
 a = None
 b = "foo"
@@ -31,4 +32,10 @@ def foo(x, y):
 
 
 def bar(y):
+    x1 = len(y)
+    x2 = all(y)
+    x3 = any(y)
+    x4 = abs(y)
+    x5 = min(y, max(y, 5))
+    x7 = ceil(floor(y))
     yield 1
