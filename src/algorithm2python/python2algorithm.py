@@ -35,9 +35,19 @@ NOMATH = -1
 
 
 class Python2Algorithm(ast.NodeVisitor):
-    INDENTATION = "   "
+    _INDENTATION = "   "
+    # The level of indentation
+    # Is manually incremented for example when entering the body of a while expression
+    # After leaving it you have to decrement again
     level = 0
+    # Keep track of the line number in the source code to be able to print newlines in the produced latex
+    # This is strictly not necessary but makes the code much more readable
     _lineno = -1
+    # algorithm2e wants a \; to terminate each line.
+    # If we naïvely do this for every line we get undesirable output
+    # for example a hanging line after the condition of a while loop
+    # To prevent this we manually set this flag when we don't want this semicolon printed.
+    # It is cleared automatically
     _suppress_semicolon = False
 
     # Flag if we are currently writing an equation
@@ -92,16 +102,16 @@ class Python2Algorithm(ast.NodeVisitor):
             self._print("$")
 
     def visit(self, node: ast.AST):
+        """This is called for every ast node so we can hijack it to perform line number checks"""
         if hasattr(node, "lineno") and node.lineno > self._lineno:
-            if self._lineno != -1 and not self._suppress_semicolon:  # The first one
-                if self.in_equation > 0:
-                    # Finish the last open math env on the line
+            if self._lineno != -1 and not self._suppress_semicolon:
+                if self.in_equation:  # We may need to close an equation.
                     self._print("$")
-                    self.in_equation = 0
+                    self.in_equation = False
                 self._print(r" \; ", end="\n")
-                self._print(self.INDENTATION * self.level, end="")
+                self._print(self._INDENTATION * self.level, end="")
             else:
-                self._print("\n" + self.INDENTATION * self.level, end="")
+                self._print("\n" + self._INDENTATION * self.level, end="")
             self._lineno = node.lineno
             self._suppress_semicolon = False
         return super().visit(node)
