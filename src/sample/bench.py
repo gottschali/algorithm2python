@@ -15,7 +15,7 @@ h = not a + ~b + (-d) + (+d)
 
 def foo(x, y):
     if x in y:
-        bar(x)
+        yield from bar(x)
         return True
     else:
         h = []
@@ -31,4 +31,4 @@ def foo(x, y):
 
 
 def bar(y):
-    pass
+    yield 1

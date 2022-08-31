@@ -12,22 +12,27 @@ ignores = dir(__builtins__)
 # Problem: AST does not include normal comments
 # Note that function names get capitalized
 
+# TODO methods (Calls with attributes)
+
 # TODO math constant, e, pi, ...
 # numpy matmul
 # Infinity / negative infinity (floats)
 # all -> \forAll
 # any -> \exists
-# set operations
 # abs(x) -> ||x||
 # min, max
 # math.ceil, floor
 # trigonometry
 # These should be doable with simple text replacements
-
+# Also do this for other greek stuff
+# -> replace alpha with \alpha, ...
 # Idea
 # set an attribute to check if already in math mode
 # this reduces the number of delimiters
 # $x$ + $y$ -> $x + y$ which is much more natural
+
+# set operations
+# Can't differentiate with normal booleans so far
 
 MATH = 1
 NOMATH = -1
@@ -50,10 +55,20 @@ class Python2Algorithm(ast.NodeVisitor):
         # print("\\SetKwFunction{" + f + "}{" + f + "}")
         kwe = KwFunctionExtractor()
         kwe.visit(node)
+
+        # Define additional keywords
+        self._print("\\SetKw{Yield}{yield}\n")
+        self._print("\\SetKw{YieldFrom}{yield from}\n")
+        self._print("\\SetKw{Break}{break}\n")
+        self._print("\\SetKw{Continue}{continue}\n")
+        self._print("\\SetKw{Pass}{pass}\n")
+
+        # SetKwData
+
         if kwe.needs:
-            self._print("\\setkwprog{Fn}{Function}{:}{end}")
+            self._print("\\SetKwProg{Fn}{Function}{:}{end}\n")
         for f in kwe.needs:
-            self._print("\\SetKwFunction{" + f + "}{" + f + "}")
+            self._print("\\SetKwFunction{" + f + "}{" + f + "}\n")
 
     def visit_Module(self, node: ast.Module):
         self.define_Functions_First(node)
@@ -61,8 +76,8 @@ class Python2Algorithm(ast.NodeVisitor):
         docstring = ast.get_docstring(node)
         if docstring:
             # Or KwData
-            # There is also \caption
-            # and \label
+            # \TitleOfAlgo
+            # \caption
             self._print(r"\KwResult{" + docstring + "}\n")
             for v in node.body[1:]:
                 self.visit(v)
@@ -83,6 +98,8 @@ class Python2Algorithm(ast.NodeVisitor):
                     self._math_level = 0
                 self._print(r" \; ", end="\n")
                 self._print(self.INDENTATION * self.level, end="")
+            else:
+                self._print("\n" + self.INDENTATION * self.level, end="")
             self._lineno = node.lineno
             self._suppress_semicolon = False
         return super().visit(node)
@@ -107,6 +124,10 @@ class Python2Algorithm(ast.NodeVisitor):
         # tuples
         # frozensets
         match node.value:
+            case True:
+                self._print(r"\top", math=MATH)
+            case False:
+                self._print(r"\bot", math=MATH)
             case int():
                 self._print(str(node.value))
             case str():
@@ -207,18 +228,19 @@ class Python2Algorithm(ast.NodeVisitor):
     def visit_UnaryOp(self, node: ast.UnaryOp):
         match node.op:
             case ast.UAdd():
-                self._print("+")
+                self._print("(+")
+                self.visit(node.operand)
+                self._print(")")
             case ast.USub():
-                self._print("-")
+                self._print("(-")
+                self.visit(node.operand)
+                self._print(")")
             case ast.Not():
                 self._print(r"\neg", math=MATH)
+                self.visit(node.operand)
             case ast.Invert():
-                # self._print(r"\overline{")
                 self._print(r"\mathord{\sim}", math=MATH)
                 self.visit(node.operand)
-                # self._print(r"}")
-                return
-        self.visit(node.operand)
 
     def visit_BinOp(self, node: ast.BinOp):
         # Handle div as a special case because it requires a different order
@@ -305,7 +327,13 @@ class Python2Algorithm(ast.NodeVisitor):
         # TODO
         # self._print(f"CALL ")
         if isinstance(node.func, ast.Name):
-            if node.func.id == "len":
+            if node.func.id == "set":
+                if len(node.args) == 0:
+                    self._print(r"\emptyset")
+                else:
+                    self.visit(ast.Set(node.args[0].elts))
+                return
+            elif node.func.id == "len":
                 self._print(r"\lvert", math=MATH)
                 for v in node.args:
                     self.visit(v)
@@ -316,9 +344,11 @@ class Python2Algorithm(ast.NodeVisitor):
             elif node.func.id in ignores:
                 self._print("\\" + node.func.id, end="", math=NOMATH)
             else:
-                self._print("\\" + node.func.id.capitalize(), end="", math=NOMATH)
+                name = normalize_function_name(node.func.id)
+                self._print("\\" + name, end="", math=NOMATH)
         elif isinstance(node.func, ast.Attribute):
             # self.visit(node.func)
+            # name = normalize_function_name(node.func.attr)
             self._print("\\" + node.func.attr, end="", math=NOMATH)
         # self.visit(node.func)
         self._print("{", math=NOMATH)
@@ -348,17 +378,44 @@ class Python2Algorithm(ast.NodeVisitor):
 
     # TODO Subscript, Slice
     # https://docs.python.org/3/library/ast.html?highlight=ast#ast.Subscript
+    def visit_Subscript(self, node: ast.Subscript) -> Any:
+        self.visit(node.value)
+        self._print(r"[", math=MATH)
+        self.visit(node.slice)
+        self._print(r"]", math=MATH)
 
     # TODO Comprehensions
     # This could be really nice in latex
+    #
+    def visit_Assign(self, node: ast.Assign) -> Any:
+        self.visit(node.targets[0])
+        # self._print(r"\gets")
+        for t in node.targets[1:]:
+            # self._print(r"\gets", math=MATH)
+            self.visit(t)
+        self.visit(node.value)
 
-    # Assign
-    # AnnAssign
-    # AugAssign
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> Any:
+        self.visit(node.target)
+        self.visit(node.target)
+        self.visit(node.value)
+
+    def visit_AugAssign(self, node: ast.AugAssign) -> Any:
+        normal_node = ast.BinOp(node.target, node.op, node.value)
+        self.visit(normal_node)
+
     # Raise
     # Assert
     # Delete
-    # Pass
+    def visit_Delete(self, node: ast.Delete) -> Any:
+        self._print(r"\mathrm{del}")
+        for t in node.targets:
+            self.visit(t)
+
+    def visit_Pass(self, node: ast.Pass) -> Any:
+        self._print(r"\Pass", math=NOMATH)
+
+    #
     # Import
     # ImportFrom
     # alias
@@ -385,7 +442,11 @@ class Python2Algorithm(ast.NodeVisitor):
         self._suppress_semicolon = True
         self._print(r"\ForAll{", math=NOMATH)
         self.level += 1
-        self.visit(node.target)
+        # we don't want the \gets arrow that will be produced by a store otehrwise
+        if isinstance(node.target, ast.Name):
+            self._print(node.target.id)
+        else:
+            self.visit(node.target)
         self._print(r"\in", math=MATH)
         self.visit(node.iter)
         self._print(r"}{", math=NOMATH)
@@ -419,17 +480,46 @@ class Python2Algorithm(ast.NodeVisitor):
         self._suppress_semicolon = True
         self.level -= 1
 
-    # Break
-    # Continue
+    def visit_Break(self, node: ast.Break) -> Any:
+        self._print(r"\Break")
+
+    def visit_Continue(self, node: ast.Continue) -> Any:
+        self._print(r"\Continue")
+
+    # TODO
     # Try
     # ExceptHandler
     # With
     # withitem
 
-    # Match
-    # match_case
-    # MatchValue
-    # MatchSingleton
+    def visit_Match(self, node: ast.Match) -> Any:
+        self._print(r"\Switch{", math=NOMATH)
+        self.visit(node.subject)
+        self._print(r"}{", math=NOMATH)
+        self.level += 1
+        for c in node.cases:
+            self.visit(c)
+        self._print(r"{", math=NOMATH)
+        self.level -= 1
+
+    def visit_match_case(self, node: ast.match_case) -> Any:
+        self._print(r"\Case{", math=NOMATH)
+        self.visit(node.pattern)
+        self.visit(node.guard)  # todo
+        self._print(r"}{", math=NOMATH)
+        self.level += 1
+        for b in node.body:
+            self.visit(b)
+        self._print(r"{", math=NOMATH)
+        self.level -= 1
+
+    def visit_MatchValue(self, node: ast.MatchValue) -> Any:
+        self.visit(node.value)
+
+    def visit_MatchSingleton(self, node: ast.MatchSingleton) -> Any:
+        self._print(node.value)
+
+    # TODO
     # MatchSequence
     # MatchStar
     # MatchMapping
@@ -442,10 +532,11 @@ class Python2Algorithm(ast.NodeVisitor):
         # self._print("DEF " + node.name)
         # doc = ast.get_docstring(node)
         # doc = doc if doc else ""
-        self._print(r"\Fn{" + "\\" + node.name.capitalize() + "{", math=NOMATH)
+        name = normalize_function_name(node.name)
+        self._print(r"\Fn{" + "\\" + name + "{", math=NOMATH)
+        self._suppress_semicolon = True
         self.visit(node.args)
         self._print("}}{", math=NOMATH)
-        self._suppress_semicolon = True
         self.level += 1
         # node.decorator_list
         for v in node.body:
@@ -463,25 +554,66 @@ class Python2Algorithm(ast.NodeVisitor):
         # vararg, kwargs, kw_defaults, default
         for p in node.posonlyargs:
             self.visit(p)
+            self._print(",")
         for p in node.args:
             self.visit(p)
+            self._print(",")
         for p in node.kwonlyargs:
             self.visit(p)
-        # return super().visit_arguments(node)
+            self._print(",")
 
     def visit_arg(self, node: ast.arg) -> Any:
         self._print(node.arg, math=MATH)
 
-    # Return
-    # Yield
-    # YieldFrom
-    # Global
-    # Nonlocal
-    # ClassDef
+    def visit_Return(self, node: ast.Return) -> Any:
+        self._print(r"\Return{", math=NOMATH)
+        self.visit(node.value)
+        self._print(r"}", math=NOMATH)
+
+    def visit_Yield(self, node: ast.Yield) -> Any:
+        self._print(r"\Yield{", math=NOMATH)
+        self.visit(node.value)
+        self._print(r"}", math=NOMATH)
+
+    def visit_YieldFrom(self, node: ast.YieldFrom) -> Any:
+        self._print(r"\YieldFrom{", math=NOMATH)
+        self.visit(node.value)
+        self._print(r"}", math=NOMATH)
+
+    # I think we shouldnt support global and nonlocal
+    # as they are generally bad practice and should
+    # have no place in pseudocode
+    def visit_Global(self, node: ast.Global) -> Any:
+        # self._print(r"\Global{", math=NOMATH)
+        for n in node.names:
+            self.visit(n)
+        # self._print(r"}", math=NOMATH)
+
+    def visit_Nonlocal(self, node: ast.Nonlocal) -> Any:
+        # self._print(r"\NonLocal{", math=NOMATH)
+        for n in node.names:
+            self.visit(n)
+        # self._print(r"}", math=NOMATH)
+
+    # I would argue that classes have also no place here
+    # They require a precise semantic
+    # But different programming languages vary alot
+    # So it is not clear what it would be in pseudocode
+    # TODO ClassDef
+    # As an alternative maybe allow classes as a kind of wrapper
+    # So put the attributes as global vars
+    # and the methods as normal functions
+    # Then we need to be careful with "self"
+
+    # TODO async
     # AsyncFunctionDef
     # Await
     # AsyncFor
     # AsyncWith
+
+
+def normalize_function_name(func: str):
+    return func.replace("_", "").capitalize()
 
 
 class KwFunctionExtractor(ast.NodeVisitor):
@@ -490,15 +622,12 @@ class KwFunctionExtractor(ast.NodeVisitor):
         self.needs = set()
 
     def visit_Call(self, node: ast.Call):
-        # TODO
-        # self._print(f"CALL ")
         if isinstance(node.func, ast.Name):
             if node.func.id in ignores:
                 self.needs.add(node.func.id)
             else:
                 self.needs.add(node.func.id.capitalize())
         elif isinstance(node.func, ast.Attribute):
-            # self.visit(node.func)
             self.needs.add(node.func.attr)
         for v in node.args:
             self.visit(v)
@@ -506,8 +635,16 @@ class KwFunctionExtractor(ast.NodeVisitor):
             self.visit(v)
 
     def visit_FunctionDef(self, node):
-        name = node.name.capitalize()
-        print("\\SetKwFunction{" + name + "}{" + name + "}")
+        name = normalize_function_name(node.name)
+        self.needs.add(name)
+        self.visit(node.args)
+        # node.decorator_list
+        for v in node.body:
+            self.visit(v)
+
+    def visit_AsyncFunctionDef(self, node):
+        name = normalize_function_name(node.name)
+        self.needs.add(name)
         self.visit(node.args)
         # node.decorator_list
         for v in node.body:
