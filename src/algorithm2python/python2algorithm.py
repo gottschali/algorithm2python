@@ -26,10 +26,6 @@ ignores = dir(__builtins__)
 # These should be doable with simple text replacements
 # Also do this for other greek stuff
 # -> replace alpha with \alpha, ...
-# Idea
-# set an attribute to check if already in math mode
-# this reduces the number of delimiters
-# $x$ + $y$ -> $x + y$ which is much more natural
 
 # set operations
 # Can't differentiate with normal booleans so far
@@ -43,7 +39,13 @@ class Python2Algorithm(ast.NodeVisitor):
     level = 0
     _lineno = -1
     _suppress_semicolon = False
-    _math_level = 0
+
+    # Flag if we are currently writing an equation
+    in_equation = False
+    # Previously we wrapped each symbol preemptively with delimiters
+    # But in this way we can make the produced more  natural like a human would write it
+    # and also reduce the number of characters needed.
+    # $x$ + $y$ -> $x + y$
 
     def __init__(self, output=sys.stdout) -> None:
         super().__init__()
@@ -85,17 +87,17 @@ class Python2Algorithm(ast.NodeVisitor):
             for v in node.body:
                 self.visit(v)
         # Finally
-        if self._math_level > 0:
+        if self.in_equation > 0:
             # Finish the last open math env
             self._print("$")
 
     def visit(self, node: ast.AST):
         if hasattr(node, "lineno") and node.lineno > self._lineno:
             if self._lineno != -1 and not self._suppress_semicolon:  # The first one
-                if self._math_level > 0:
+                if self.in_equation > 0:
                     # Finish the last open math env on the line
                     self._print("$")
-                    self._math_level = 0
+                    self.in_equation = 0
                 self._print(r" \; ", end="\n")
                 self._print(self.INDENTATION * self.level, end="")
             else:
@@ -105,15 +107,24 @@ class Python2Algorithm(ast.NodeVisitor):
         return super().visit(node)
 
     def _print(self, value: str, math=None, end=" ", *kwarg, **kwargs):
-        if math:
-            if math == MATH:
-                if self._math_level == 0:
-                    value = "$" + value
-                self._math_level = 1
-            if math == NOMATH:
-                if self._math_level == 1:
-                    value = "$" + value
-                self._math_level = 0
+        """
+        Internal print wrapper to print latex output.
+        Pass math=MATH if you require to be in an math environment.
+        For example $\frac{1}{2}$ would not work without the inline euqation delimiters ($)
+        If math=NOMATH then it is written NOT in a math env.
+        Otherwise there is no guarantee.
+        """
+        if math == MATH:
+            # We need to start a new equation
+            if not self.in_equation:
+                value = "$" + value
+            # Otherwise we are already in an equation
+            self.in_equation = True
+        if math == NOMATH:
+            # We need to terminate an equation
+            if self.in_equation:
+                value = "$" + value
+            self.in_equation = False
         print(value, end=end, file=self._output_file, *kwarg, **kwargs)
 
     def visit_Constant(self, node):
