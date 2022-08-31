@@ -31,16 +31,61 @@ How
 - simple text replacement may also work
 
 Further
-- could this be abstracted to other languages than python
+- could this be abstracted to other languages than python?
 
+* Progress
+    - [-] FormattedValue
+    - [-] JoinedStr
+    - [-] Dict
+    - [-] Starred
+    - [ ] IfExp (ternary)
+    - [ ] Subscript, Slice
+    - [ ] Comprehensions!
+    - [ ] Raise
+    - [ ] Assert
+    - [ ] Delete
+    - [ ] Import
+    - [ ] ImportFrom
+    - [ ] alias
+
+    - [ ] Try
+    - [ ] ExceptHandler
+    - [ ] With
+    - [ ] withitem
+    - [ ] MatchSequence
+    - [ ] MatchStar
+    - [ ] MatchMapping
+    - [ ] MatchClass
+    - [ ] MatchAs
+    - [ ] MatchOr
+    - [ ] FunctionDef.decorator_list
+    - [ ] ClassDef
+    I would argue that classes have also no place here
+    They require a precise semantic
+    But different programming languages vary alot
+    So it is not clear what it would be in pseudocode
+    As an alternative maybe allow classes as a kind of wrapper
+    So put the attributes as global vars
+    and the methods as normal functions
+    Then we need to be careful with "self"
+    - [ ] async
+    - [ ] AsyncFunctionDef
+    - [ ] Await
+    - [ ] AsyncFor
+    - [ ] AsyncWith
+    - [-] Global
+    - [-] NonLocal
+    I think we shouldnt support global and nonlocal
+    as they are generally bad practice and should
+    have no place in pseudocode
 
 * Tasks
 - [-] Find example code
 - [ ] what is the expected result
-- [ ] preview the result
+- [X] preview the result
   compile the latex
   use a minimalistic header
-- [ ] create a test file
+- [-] create a test file
   with all possible constructs
 - Challenges:
   when to insert math $$ delimiters.

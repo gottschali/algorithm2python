@@ -143,11 +143,6 @@ class Python2Algorithm(ast.NodeVisitor):
 
     def visit_Constant(self, node):
         # https://stackoverflow.com/questions/67524641/convert-multiple-isinstance-checks-to-structural-pattern-matching
-        # number
-        # string
-        # None
-        # tuples
-        # frozensets
         match node.value:
             case True:
                 self._print(r"\top", math=MATH)
@@ -156,7 +151,7 @@ class Python2Algorithm(ast.NodeVisitor):
             case int():
                 self._print(str(node.value))
             case str():
-                self._print("``" + node.value + "'", math=NOMATH)
+                self._print("``" + node.value + "''", math=NOMATH)
             case float() | Decimal():
                 # rounding may be not desired! This probably confuses more so leave it out
                 self._print(str(node.value))
@@ -171,7 +166,6 @@ class Python2Algorithm(ast.NodeVisitor):
 
     def visit_FormattedValue(self, node: ast.FormattedValue):
         self.visit(node.value)
-        # TODO this is just python
         match node.conversion:
             case -1:
                 pass
@@ -185,7 +179,6 @@ class Python2Algorithm(ast.NodeVisitor):
             self.visit(node.format_spec)
 
     def visit_JoinedStr(self, node: ast.JoinedStr):
-        # TODO this is just python
         self._print("f'")
         for n in node.values:
             self.visit(n)
@@ -243,7 +236,6 @@ class Python2Algorithm(ast.NodeVisitor):
         elif isinstance(node.ctx, ast.Store):
             self._print(f"{node.id} \\gets", math=MATH)
         elif isinstance(node.ctx, ast.Store):
-            # TODO
             self._print(f"DEL {node.id}", math=NOMATH)
 
     def visit_Starred(self, node: ast.Starred):
@@ -349,8 +341,6 @@ class Python2Algorithm(ast.NodeVisitor):
             self.visit(comp)
 
     def visit_Call(self, node: ast.Call):
-        # TODO
-        # self._print(f"CALL ")
         if isinstance(node.func, ast.Name):
             if node.func.id == "set":
                 if len(node.args) == 0:
@@ -439,8 +429,6 @@ class Python2Algorithm(ast.NodeVisitor):
         self._print(f"{node.arg}=", math=NOMATH)
         self.visit(node.value)
 
-    # IfExp (ternary)
-
     def visit_Attribute(self, node: ast.Attribute):
         self.visit(node.value)
         self._print("." + node.attr, math=NOMATH)
@@ -451,7 +439,6 @@ class Python2Algorithm(ast.NodeVisitor):
         self._print(r" := ")
         self.visit(node.value)
 
-    # TODO Subscript, Slice
     # https://docs.python.org/3/library/ast.html?highlight=ast#ast.Subscript
     def visit_Subscript(self, node: ast.Subscript) -> Any:
         self.visit(node.value)
@@ -459,9 +446,6 @@ class Python2Algorithm(ast.NodeVisitor):
         self.visit(node.slice)
         self._print(r"]", math=MATH)
 
-    # TODO Comprehensions
-    # This could be really nice in latex
-    #
     def visit_Assign(self, node: ast.Assign) -> Any:
         self.visit(node.targets[0])
         # self._print(r"\gets")
@@ -479,9 +463,6 @@ class Python2Algorithm(ast.NodeVisitor):
         normal_node = ast.BinOp(node.target, node.op, node.value)
         self.visit(normal_node)
 
-    # Raise
-    # Assert
-    # Delete
     def visit_Delete(self, node: ast.Delete) -> Any:
         self._print(r"\mathrm{del}")
         for t in node.targets:
@@ -489,11 +470,6 @@ class Python2Algorithm(ast.NodeVisitor):
 
     def visit_Pass(self, node: ast.Pass) -> Any:
         self._print(r"\Pass", math=NOMATH)
-
-    #
-    # Import
-    # ImportFrom
-    # alias
 
     def visit_If(self, node: ast.If):
         self._suppress_semicolon = True
@@ -561,12 +537,6 @@ class Python2Algorithm(ast.NodeVisitor):
     def visit_Continue(self, node: ast.Continue) -> Any:
         self._print(r"\Continue")
 
-    # TODO
-    # Try
-    # ExceptHandler
-    # With
-    # withitem
-
     def visit_Match(self, node: ast.Match) -> Any:
         self._print(r"\Switch{", math=NOMATH)
         self.visit(node.subject)
@@ -594,19 +564,7 @@ class Python2Algorithm(ast.NodeVisitor):
     def visit_MatchSingleton(self, node: ast.MatchSingleton) -> Any:
         self._print(node.value)
 
-    # TODO
-    # MatchSequence
-    # MatchStar
-    # MatchMapping
-    # MatchClass
-    # MatchAs
-    # MatchOr
-
     def visit_FunctionDef(self, node):
-        # self._print("\\SetKwFunction{" + node.name + "}{" + node.name + "}")
-        # self._print("DEF " + node.name)
-        # doc = ast.get_docstring(node)
-        # doc = doc if doc else ""
         name = normalize_function_name(node.name)
         self._print(r"\Fn{" + "\\" + name + "{", math=NOMATH)
         self._suppress_semicolon = True
@@ -655,9 +613,6 @@ class Python2Algorithm(ast.NodeVisitor):
         self.visit(node.value)
         self._print(r"}", math=NOMATH)
 
-    # I think we shouldnt support global and nonlocal
-    # as they are generally bad practice and should
-    # have no place in pseudocode
     def visit_Global(self, node: ast.Global) -> Any:
         # self._print(r"\Global{", math=NOMATH)
         for n in node.names:
@@ -669,22 +624,6 @@ class Python2Algorithm(ast.NodeVisitor):
         for n in node.names:
             self.visit(n)
         # self._print(r"}", math=NOMATH)
-
-    # I would argue that classes have also no place here
-    # They require a precise semantic
-    # But different programming languages vary alot
-    # So it is not clear what it would be in pseudocode
-    # TODO ClassDef
-    # As an alternative maybe allow classes as a kind of wrapper
-    # So put the attributes as global vars
-    # and the methods as normal functions
-    # Then we need to be careful with "self"
-
-    # TODO async
-    # AsyncFunctionDef
-    # Await
-    # AsyncFor
-    # AsyncWith
 
 
 def normalize_function_name(func: str):
